@@ -6,13 +6,18 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# engine = create_engine(DATABASE_URL)
+
 # 🔥 Debug print (remove later)
 print("DATABASE_URL:", DATABASE_URL)
 
 if not DATABASE_URL:
-    raise ValueError("❌ DATABASE_URL is not set in environment variables")
+    print("❌ DATABASE_URL not found ")
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+engine = create_engine(DATABASE_URL, pool_pre_ping=True , connect_args={"sslmode": "require"})
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

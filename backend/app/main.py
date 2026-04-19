@@ -220,13 +220,13 @@ def submit_answer(data : schemas.AnswerCreate , db : Session = Depends(get_db) ,
     answer_text = data.answer.strip()
 
     if not answer_text:
-        score = 0,
-        feedback = "No answer provided",
+        score = 0
+        feedback = "No answer provided"
         ideal_answer = "You should attempt the question"
 
     elif len(answer_text.split()) < 3:
-        score = 1,
-        feedback = "Answer too short. Try to explain more",
+        score = 1
+        feedback = "Answer too short. Try to explain more"
         ideal_answer = "Provide a detailed explanation with examples"
 
     else:
