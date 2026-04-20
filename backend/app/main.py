@@ -10,6 +10,8 @@ import os
 import json
 import PyPDF2
 from app.ai_feedback import generate_ai_feedback
+import app.models
+
 
 # 🔥 Load env
 load_dotenv()
@@ -28,29 +30,28 @@ app.add_middleware(
 )
 
 # 🔥 SAFE STARTUP EVENT (VERY IMPORTANT)
+app = FastAPI()
+
 @app.on_event("startup")
 def startup():
+    print("🚀 Starting app...")
+
+    db_url = os.getenv("DATABASE_URL")
+    print("DATABASE_URL:", db_url)
+
     try:
-        print("🚀 Starting app...")
-
-        db_url = os.getenv("DATABASE_URL")
-        api_key = os.getenv("OPENROUTER_API_KEY")
-
-        print("DATABASE_URL:", db_url)
-        print("API KEY EXISTS:", bool(api_key))
-
-        if not db_url:
-            raise Exception("DATABASE_URL missing")
-
         models.Base.metadata.create_all(bind=engine)
+        print("✅ Tables created")
 
-        print("✅ Startup success")
+        from sqlalchemy import inspect
+        inspector = inspect(engine)
+        print("TABLES:", inspector.get_table_names())
 
     except Exception as e:
-        print("❌ STARTUP ERROR:", e)
-        raise e
+        print("❌ ERROR:", e)
+        
 
-
+        
 @app.get("/")
 def home():
     return {"message": "Backend + Database running"}
