@@ -71,6 +71,7 @@ function Signup(params) {
 
         <input
           type="password"
+          maxLength={72}
           placeholder="Password"
           className="w-full p-3 mb-6 rounded-lg bg-white/10 text-white outline-none"
           value={password}

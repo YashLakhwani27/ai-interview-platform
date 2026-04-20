@@ -55,31 +55,33 @@ def home():
 
 @app.post("/signup")
 def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    try:
-        print("Incoming user:", user)
 
-        existing_user = db.query(models.User).filter(models.User.email == user.email).first()
-
-        if existing_user:
-            raise HTTPException(status_code=400, detail="Email already registered")
-
-        hashed_password = auth.hash_password(user.password)
-
-        new_user = models.User(
-            name=user.name,
-            email=user.email,
-            password=hashed_password
+    # ✅ HARD CHECK (THIS WILL STOP ERROR)
+    if len(user.password.encode("utf-8")) > 72:
+        raise HTTPException(
+            status_code=400,
+            detail="Password too long (max 72 characters)"
         )
 
-        db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
+    existing_user = db.query(models.User).filter(models.User.email == user.email).first()
 
-        return {"message": "User created successfully"}
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
 
-    except Exception as e:
-        print("SIGNUP ERROR:", e)
-        raise HTTPException(status_code=500, detail=str(e))
+    hashed_password = auth.hash_password(user.password)
+
+    new_user = models.User(
+        name=user.name,
+        email=user.email,
+        password=hashed_password
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    return {"message": "User created successfully"}
+
 
 @app.post("/login")
 def login(user : schemas.UserLogin , db : Session = Depends(get_db)):
