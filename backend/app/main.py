@@ -1,26 +1,21 @@
-from subprocess import getoutput
-from fastapi import FastAPI , Depends , HTTPException
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
-from app.database import SessionLocal , engine
-from app import models , auth , schemas
-import requests
-from dotenv import load_dotenv
-import os
-from openai import OpenAI
-import re
-from app.database import get_db
-load_dotenv()
-from datetime import datetime , timedelta
+from app.database import SessionLocal, engine, get_db
+from app import models, auth, schemas
 from fastapi.middleware.cors import CORSMiddleware
-import json 
-from app.ai_feedback import generate_ai_feedback
-from fastapi import UploadFile , File
+from datetime import datetime, timedelta
+from dotenv import load_dotenv
+import requests
+import os
+import json
 import PyPDF2
 
-models.Base.metadata.create_all(bind=engine)
+# 🔥 Load env
+load_dotenv()
 
 app = FastAPI()
 
+# 🔥 Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -28,11 +23,27 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-print("DATABASE_URL: " ,os.getenv("DATABASE_URL"))
+
+# 🔥 SAFE STARTUP EVENT (VERY IMPORTANT)
+@app.on_event("startup")
+def startup():
+    try:
+        print("🚀 Starting app...")
+        print("DATABASE_URL:", os.getenv("DATABASE_URL"))
+        print("OPENROUTER_API_KEY:", os.getenv("OPENROUTER_API_KEY"))
+
+        models.Base.metadata.create_all(bind=engine)
+
+        print("✅ Database connected & tables created")
+
+    except Exception as e:
+        print("❌ STARTUP ERROR:", e)
+        raise e
+
 
 @app.get("/")
 def home():
-    return {"message" : "Backend + Database running "}
+    return {"message": "Backend + Database running"}
 
 @app.post("/signup")
 def signup(user : schemas.UserCreate , db : Session = Depends(get_db)):

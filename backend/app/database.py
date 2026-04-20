@@ -15,10 +15,19 @@ if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
 print("DATABASE_URL:", DATABASE_URL)
 
 if not DATABASE_URL:
-    print("❌ DATABASE_URL not found ")
+    raise Exception("❌ DATABASE_URL is not set")
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True , connect_args={"sslmode": "require"})
-
+if "render.com" in DATABASE_URL:
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True
+    )
+else:
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,
+        connect_args={"sslmode": "require"}
+    )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
