@@ -16,6 +16,8 @@ load_dotenv()
 
 app = FastAPI()
 
+models.Base.metadata.create_all(bind=engine)
+
 # 🔥 Middleware
 app.add_middleware(
     CORSMiddleware,
