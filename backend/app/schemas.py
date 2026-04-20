@@ -1,9 +1,11 @@
-from pydantic import BaseModel , EmailStr
+from pydantic import BaseModel, EmailStr
+from typing import Annotated
+from pydantic import StringConstraints
 
 class UserCreate(BaseModel):
-    name : str
-    email : EmailStr
-    password : str
+    name: str
+    email: EmailStr
+    password: Annotated[str, StringConstraints(min_length=6, max_length=72)]
 
 class UserLogin(BaseModel):
     email : EmailStr
