@@ -30,12 +30,19 @@ app.add_middleware(
 def startup():
     try:
         print("🚀 Starting app...")
-        print("DATABASE_URL:", os.getenv("DATABASE_URL"))
-        print("OPENROUTER_API_KEY:", os.getenv("OPENROUTER_API_KEY"))
+
+        db_url = os.getenv("DATABASE_URL")
+        api_key = os.getenv("OPENROUTER_API_KEY")
+
+        print("DATABASE_URL:", db_url)
+        print("API KEY EXISTS:", bool(api_key))
+
+        if not db_url:
+            raise Exception("DATABASE_URL missing")
 
         models.Base.metadata.create_all(bind=engine)
 
-        print("✅ Database connected & tables created")
+        print("✅ Startup success")
 
     except Exception as e:
         print("❌ STARTUP ERROR:", e)
