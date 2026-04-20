@@ -51,7 +51,7 @@ def startup():
         print("❌ ERROR:", e)
         
 
-        
+
 @app.get("/")
 def home():
     return {"message": "Backend + Database running"}
@@ -71,7 +71,12 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    hashed_password = auth.hash_password(user.password)
+    try:
+        hashed_password = auth.hash_password(user.password)
+        
+    except Exception as e:
+        print("HASH ERROR:", e)
+    raise HTTPException(status_code=500, detail=str(e))
 
     new_user = models.User(
         name=user.name,

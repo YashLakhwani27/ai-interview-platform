@@ -13,7 +13,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 
-pwd_context = CryptContext(schemes=["bcrypt"] , deprecated = "auto")
+pwd_context = CryptContext(schemes=["bcrypt"] , deprecated = "auto" , bcrypt__truncate_error = False)
 
 # Hash password
 def hash_password(password : str):
@@ -21,7 +21,7 @@ def hash_password(password : str):
 
 # Verify password
 def verify_password(plain , hashed):
-    return pwd_context.verify(plain , hashed)
+    return pwd_context.verify(plain[:72] , hashed)
 
 # Create jwt token
 def create_access_token(data : dict):
