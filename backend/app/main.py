@@ -9,7 +9,7 @@ import requests
 import os
 import json
 import PyPDF2
-from ai_feedback import generate_ai_feedback
+from app.ai_feedback import generate_ai_feedback
 
 # 🔥 Load env
 load_dotenv()
