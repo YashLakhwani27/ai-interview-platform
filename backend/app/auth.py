@@ -21,15 +21,31 @@ pwd_context = CryptContext(
 )
 
 def _prepare_password(password: str) -> str:
-    """
-    SHA-256 hash the password first, then base64 encode it.
-    This keeps it safely under 72 bytes for bcrypt.
-    """
     digest = hashlib.sha256(password.encode("utf-8")).digest()
-    return base64.b64encode(digest).decode("utf-8")  # Always 44 chars, safe for bcrypt
+    return base64.b64encode(digest).decode("utf-8")  # Always 44 chars
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(_prepare_password(password))
 
 def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(_prepare_password(plain), hashed)
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(hours=1)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("sub")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    user = db.query(models.User).filter(models.User.email == email).first()
+
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    return user
