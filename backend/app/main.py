@@ -10,7 +10,7 @@ import os
 import json
 import PyPDF2
 from app.ai_feedback import generate_ai_feedback
-from app.models import models
+from models import *
 
 
 # 🔥 Load env
