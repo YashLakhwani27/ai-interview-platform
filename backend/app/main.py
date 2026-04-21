@@ -53,19 +53,16 @@ def startup():
 def home():
     return {"message": "Backend + Database running"}
 
+
 @app.post("/signup")
 def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
-
     print("🔥 SIGNUP HIT:", user.email)
 
+    # Byte-level check for special characters
     if len(user.password.encode("utf-8")) > 72:
-        raise HTTPException(
-            status_code=400,
-            detail="Password too long (max 72 characters)"
-        )
+        raise HTTPException(status_code=400, detail="Password too long (max 72 bytes)")
 
     existing_user = db.query(models.User).filter(models.User.email == user.email).first()
-
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
@@ -77,66 +74,17 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
     try:
-        new_user = models.User(
-            name=user.name,
-            email=user.email,
-            password=hashed_password
-        )
-
+        new_user = models.User(name=user.name, email=user.email, password=hashed_password)
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
-
         print("✅ USER CREATED")
-
     except Exception as e:
         print("❌ DB ERROR:", e)
         raise HTTPException(status_code=500, detail=str(e))
 
     return {"message": "User created successfully"}
-@app.post("/signup")
-def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
-
-    print("🔥 SIGNUP HIT:", user.email)
-
-    if len(user.password.encode("utf-8")) > 72:
-        raise HTTPException(
-            status_code=400,
-            detail="Password too long (max 72 characters)"
-        )
-
-    existing_user = db.query(models.User).filter(models.User.email == user.email).first()
-
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-
-    try:
-        hashed_password = auth.hash_password(user.password)
-        print("✅ PASSWORD HASHED")
-    except Exception as e:
-        print("❌ HASH ERROR:", e)
-        raise HTTPException(status_code=500, detail=str(e))
-
-    try:
-        new_user = models.User(
-            name=user.name,
-            email=user.email,
-            password=hashed_password
-        )
-
-        db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
-
-        print("✅ USER CREATED")
-
-    except Exception as e:
-        print("❌ DB ERROR:", e)
-        raise HTTPException(status_code=500, detail=str(e))
-
-    return {"message": "User created successfully"}
-
-
+    # ✅ Second duplicate /signup block REMOVED
 
 @app.post("/login")
 def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
@@ -269,71 +217,70 @@ Rules:
         "end_time": question_end_time.isoformat() + "Z"  # ✅ FIXED
     }
 
-def calculate_score(answer : str):
+def calculate_score(answer: str):
     answer = answer.strip().lower()
 
     if not answer:
-        return 0 , "No answer provided"
-    
+        return 0, "No answer provided"
+
     if len(answer.split()) < 3:
-        return 1 , "Answer too short, Try to explain more"
-    
-    weak_phrases = ["yes"  , "no" , "i don't know" , "not sure" , "maybe"]
+        return 1, "Answer too short, try to explain more"
 
-    if any(phrase in weak_phrases for phrase in weak_phrases):
-        return 0 , "Answer lacks clarity or depth"
-    
+    weak_phrases = ["yes", "no", "i don't know", "not sure", "maybe"]
+
+    # ✅ Fixed: check answer against weak_phrases, not list against itself
+    if any(phrase in answer for phrase in weak_phrases):
+        return 3, "Answer lacks clarity or depth"
+
     if len(answer.split()) < 15:
-        return 5, "Decent answer but can be improved with more details"
-
+        return 5, "Decent answer but needs more detail"
 
     if len(answer.split()) < 40:
         return 7, "Good answer with proper explanation"
 
-    # 🔥 Excellent
     return 9, "Excellent detailed answer"
 
-
 @app.post("/submit-answer")
-def submit_answer(data : schemas.AnswerCreate , db : Session = Depends(get_db) , current_user = Depends(auth.get_current_user)):
+def submit_answer(data: schemas.AnswerCreate, db: Session = Depends(get_db), current_user = Depends(auth.get_current_user)):
 
+    interview = db.query(models.Interview).filter(
+        models.Interview.interview_id == data.interview_id,
+        models.Interview.user_id == current_user.id
+    ).first()
 
-    interview = db.query(models.Interview).filter(models.Interview.interview_id == data.interview_id,
-                                                  models.Interview.user_id == current_user.id).first()
-    
-    if not interview :
-         raise HTTPException(status_code=404 , detail="Interview not found")
-    
+    if not interview:
+        raise HTTPException(status_code=404, detail="Interview not found")
+
     if datetime.utcnow() > interview.end_time:
-         raise HTTPException(status_code=400 , detail="Time is up")
+        raise HTTPException(status_code=400, detail="Time is up")
 
-    #  Get a question
     question = db.query(models.Question).filter(models.Question.id == data.question_id).first()
-
     if not question:
-        raise HTTPException(status_code=404 , detail="Question not found")
-    
+        raise HTTPException(status_code=404, detail="Question not found")
+
     answer_text = data.answer.strip()
 
+    # ✅ Defaults defined upfront so they're always assigned
+    score = 0
+    feedback = "No answer provided"
+    ideal_answer = "You should attempt the question"
+
     if not answer_text:
-        score = 0
-        feedback = "No answer provided"
+        score, feedback = 0, "No answer provided"
         ideal_answer = "You should attempt the question"
 
     elif len(answer_text.split()) < 3:
-        score = 1
-        feedback = "Answer too short. Try to explain more"
+        score, feedback = 1, "Answer too short. Try to explain more"
         ideal_answer = "Provide a detailed explanation with examples"
 
     else:
-        # 🤖 AI Evaluation
         prompt = f"""
         Evaluate this answer:
 
         Question: {question.question_text}
         Answer: {answer_text}
 
-        Return JSON:
+        Return JSON only:
         {{
             "score": number (0-10),
             "feedback": "...",
@@ -353,11 +300,8 @@ def submit_answer(data : schemas.AnswerCreate , db : Session = Depends(get_db) ,
                     "messages": [{"role": "user", "content": prompt}]
                 }
             )
-
             result = response.json()
             ai_output = result["choices"][0]["message"]["content"]
-
-            import json
             parsed = json.loads(ai_output)
 
             score = parsed.get("score", 5)
@@ -366,18 +310,19 @@ def submit_answer(data : schemas.AnswerCreate , db : Session = Depends(get_db) ,
 
         except Exception as e:
             print("AI ERROR:", e)
-            score = 5
-            feedback = "Could not evaluate properly."
-            ideal_answer = "Try to improve your answer."
+            # ✅ Fallback to basic scoring, not overwrite
+            score, feedback = calculate_score(data.answer)
+            ideal_answer = "Try to improve your answer with more detail."
 
-        score , feedback = calculate_score(data.answer)
+        # ✅ REMOVED: score, feedback = calculate_score(data.answer) — was wiping AI results
+
     new_answer = models.Answer(
-        question_id = data.question_id,
-        answer_text = answer_text,
-        feedback = feedback,
-        score = score,
-        user_id = current_user.id,
-        interview_id = data.interview_id
+        question_id=data.question_id,
+        answer_text=answer_text,
+        feedback=feedback,
+        score=score,
+        user_id=current_user.id,
+        interview_id=data.interview_id
     )
 
     db.add(new_answer)
@@ -385,9 +330,9 @@ def submit_answer(data : schemas.AnswerCreate , db : Session = Depends(get_db) ,
     db.refresh(new_answer)
 
     return {
-         "score" : score,
-         "feedback" : feedback,
-         "ideal_answer": ideal_answer
+        "score": score,
+        "feedback": feedback,
+        "ideal_answer": ideal_answer
     }
 
 @app.get("/dashboard")
