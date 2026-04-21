@@ -10,19 +10,22 @@ import os
 import json
 import PyPDF2
 from app.ai_feedback import generate_ai_feedback
-
+from fastapi.security import HTTPBearer
 
 # 🔥 Load env
 load_dotenv()
 
-app = FastAPI()
+app = FastAPI(swagger_ui_parameters={"persistAuthorization": True})
 
 # models.Base.metadata.create_all(bind=engine)
 
 # 🔥 Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://ai-interview-platform-bay.vercel.app/",
+        "http://localhost:5173"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
