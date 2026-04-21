@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
-from app.database import SessionLocal, engine, get_db
+from app.database import engine, get_db
 from app import models, auth, schemas
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timedelta
@@ -10,7 +10,6 @@ import os
 import json
 import PyPDF2
 from app.ai_feedback import generate_ai_feedback
-from app import models
 
 
 # 🔥 Load env
@@ -57,6 +56,8 @@ def home():
 @app.post("/signup")
 def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
+    print("🔥 SIGNUP HIT:", user.email)
+
     if len(user.password.encode("utf-8")) > 72:
         raise HTTPException(
             status_code=400,
@@ -70,31 +71,95 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
     try:
         hashed_password = auth.hash_password(user.password)
+        print("✅ PASSWORD HASHED")
     except Exception as e:
-        print("HASH ERROR:", e)
-        raise HTTPException(status_code=500, detail=str(e))  # ✅ INSIDE except
+        print("❌ HASH ERROR:", e)
+        raise HTTPException(status_code=500, detail=str(e))
 
-    new_user = models.User(
-        name=user.name,
-        email=user.email,
-        password=hashed_password
-    )
+    try:
+        new_user = models.User(
+            name=user.name,
+            email=user.email,
+            password=hashed_password
+        )
 
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+
+        print("✅ USER CREATED")
+
+    except Exception as e:
+        print("❌ DB ERROR:", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return {"message": "User created successfully"}
+@app.post("/signup")
+def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
+
+    print("🔥 SIGNUP HIT:", user.email)
+
+    if len(user.password.encode("utf-8")) > 72:
+        raise HTTPException(
+            status_code=400,
+            detail="Password too long (max 72 characters)"
+        )
+
+    existing_user = db.query(models.User).filter(models.User.email == user.email).first()
+
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    try:
+        hashed_password = auth.hash_password(user.password)
+        print("✅ PASSWORD HASHED")
+    except Exception as e:
+        print("❌ HASH ERROR:", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    try:
+        new_user = models.User(
+            name=user.name,
+            email=user.email,
+            password=hashed_password
+        )
+
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+
+        print("✅ USER CREATED")
+
+    except Exception as e:
+        print("❌ DB ERROR:", e)
+        raise HTTPException(status_code=500, detail=str(e))
 
     return {"message": "User created successfully"}
 
 
+
 @app.post("/login")
-def login(user : schemas.UserLogin , db : Session = Depends(get_db)):
+def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
+
+    print("🔥 LOGIN HIT:", user.email)
+
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
 
-    if not db_user or not auth.verify_password(user.password , db_user.password):
-        raise HTTPException(status_code=400 , detail="Invalid credentials")
-    
-    token = auth.create_access_token({"sub" : db_user.email})
+    if not db_user:
+        print("❌ USER NOT FOUND")
+        raise HTTPException(status_code=400, detail="Invalid credentials")
+
+    try:
+        if not auth.verify_password(user.password, db_user.password):
+            print("❌ PASSWORD WRONG")
+            raise HTTPException(status_code=400, detail="Invalid credentials")
+    except Exception as e:
+        print("❌ VERIFY ERROR:", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    print("✅ LOGIN SUCCESS")
+
+    token = auth.create_access_token({"sub": db_user.email})
 
     return {"access_token": token}
 
