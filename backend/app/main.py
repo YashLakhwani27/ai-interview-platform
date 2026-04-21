@@ -23,7 +23,7 @@ app = FastAPI(swagger_ui_parameters={"persistAuthorization": True})
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://ai-interview-platform-bay.vercel.app/",
+        "https://ai-interview-platform-bay.vercel.app",
         "http://localhost:5173"
     ],
     allow_credentials=True,
