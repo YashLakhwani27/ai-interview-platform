@@ -1,10 +1,9 @@
-import axios  from "axios";
+import axios from "axios";
 
-const API = axios.create(
-    {
-        baseURL: "http://127.0.0.1:8000",
-    }
-);
+// ✅ Use environment variable, fallback to localhost for development
+const API = axios.create({
+    baseURL: import.meta.env.VITE_API_URL || "http://127.0.0.1:8000",
+});
 
 API.interceptors.request.use((req) => {
     const token = localStorage.getItem("token")
@@ -15,7 +14,7 @@ API.interceptors.request.use((req) => {
     return req;
 })
 
-API.interceptors.response.use(res => res,(error) => {
+API.interceptors.response.use(res => res, (error) => {
     if(error.response?.status == 401){
         localStorage.removeItem("token");
         window.location.href = "/"
