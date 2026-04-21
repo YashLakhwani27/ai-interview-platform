@@ -2,7 +2,7 @@ import axios from "axios";
 
 // ✅ Use environment variable, fallback to localhost for development
 const API = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || "http://127.0.0.1:8000",
+    baseURL: "https://your-actual-backend.onrender.com",
 });
 
 API.interceptors.request.use((req) => {
