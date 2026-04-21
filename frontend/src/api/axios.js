@@ -2,7 +2,7 @@ import axios from "axios";
 
 // ✅ Use environment variable, fallback to localhost for development
 const API = axios.create({
-    baseURL: "https://your-actual-backend.onrender.com",
+    baseURL: "https://ai-interview-platform-h5aq.onrender.com",
 });
 
 API.interceptors.request.use((req) => {
