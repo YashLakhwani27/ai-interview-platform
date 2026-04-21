@@ -10,7 +10,7 @@ import os
 import json
 import PyPDF2
 from app.ai_feedback import generate_ai_feedback
-from models import *
+from app import models
 
 
 # 🔥 Load env
@@ -18,7 +18,7 @@ load_dotenv()
 
 app = FastAPI()
 
-models.Base.metadata.create_all(bind=engine)
+# models.Base.metadata.create_all(bind=engine)
 
 # 🔥 Middleware
 app.add_middleware(
@@ -30,8 +30,6 @@ app.add_middleware(
 )
 
 # 🔥 SAFE STARTUP EVENT (VERY IMPORTANT)
-app = FastAPI()
-
 @app.on_event("startup")
 def startup():
     print("🚀 Starting app...")
@@ -59,7 +57,6 @@ def home():
 @app.post("/signup")
 def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
-    # ✅ HARD CHECK (THIS WILL STOP ERROR)
     if len(user.password.encode("utf-8")) > 72:
         raise HTTPException(
             status_code=400,
@@ -73,10 +70,9 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
     try:
         hashed_password = auth.hash_password(user.password)
-        
     except Exception as e:
         print("HASH ERROR:", e)
-    raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))  # ✅ INSIDE except
 
     new_user = models.User(
         name=user.name,
