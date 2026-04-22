@@ -177,13 +177,6 @@ function Result() {
         >
           Go to Dashboard
         </button>
-
-        <button
-          onClick={() => navigate("/start-interview")}
-          className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg cursor-pointer font-semibold"
-        >
-          New Interview 🚀
-        </button>
       </div>
     </div>
   );
